@@ -1,12 +1,12 @@
 # SchachTrainer – Konzept
 
-Stand: 06.11.2026 · Status: Entwurf zur Abstimmung
+Stand: 06.11.2026 · Status: abgestimmt, Version 0.1 umgesetzt (M1–M4)
 
 ---
 
 ## 1. Ziel
 
-Eine Schach-App für das iPhone, die **vollständig offline** funktioniert und drei Dinge kann:
+Eine Schach-App für iPhone und iPad, die **vollständig offline** funktioniert und drei Dinge kann:
 
 | Priorität | Modus | Beschreibung |
 |---|---|---|
@@ -40,30 +40,31 @@ Eine Schach-App für das iPhone, die **vollständig offline** funktioniert und d
 
 ### 2.3 Modus „Schachrätsel“
 
-- **Rätsel-Quelle**: Lichess-Rätseldatenbank (frei, Lizenz CC0, > 4 Mio. Aufgaben mit Bewertung und Themen). Wir liefern eine kuratierte Auswahl (z. B. 5 000–10 000 Rätsel) direkt in der App mit → offline verfügbar.
-- **Ablauf**: Stellung wird gezeigt, der Gegner macht den ersten (auslösenden) Zug animiert, dann ist der Spieler dran. Richtiger Zug → Gegner antwortet automatisch, bis die Lösung komplett ist. Falscher Zug → Rückmeldung, wahlweise erneut versuchen oder Lösung zeigen.
-- **Hilfen**: Hinweis (Figur hervorheben, die ziehen muss), Lösung anzeigen.
-- **Varianten**:
-  - *Training*: Rätsel passend zur eigenen Rätsel-Wertung (Elo-ähnlich, startet bei ~1200, steigt/fällt je nach Erfolg).
-  - *Nach Thema*: Gabel, Fesselung, Matt in 1/2/3, Grundreihenmatt, Opfer, Endspiel …
-  - *Tagesrätsel*: jeden Tag ein festes Rätsel (deterministisch aus dem Datum gewählt, funktioniert offline).
-  - *Optional später*: „Puzzle Rush“ – so viele Rätsel wie möglich in 3/5 Minuten.
-- **Statistik**: gelöste Rätsel, Erfolgsquote, Wertungsverlauf, Stärken/Schwächen je Thema, Serie (Tage in Folge).
+- **Rätsel-Quelle**: Lichess-Rätseldatenbank (frei, Lizenz CC0). Mitgeliefert werden 3 × 3.000 beliebte, gut bewertete Aufgaben → offline verfügbar.
+- **3 Schwierigkeitsgrade**: Leicht (Wertung 400–1200), Mittel (1200–1800), Schwer (1800–2700).
+- **Ablauf**: Stellung wird gezeigt, der Gegner macht den ersten (auslösenden) Zug animiert, dann ist der Spieler dran. Richtiger Zug → Gegner antwortet automatisch, bis die Lösung komplett ist. Falscher Zug → Rückmeldung, erneut versuchen. Bei Mattaufgaben zählt jeder Mattzug als richtig.
+- **Hilfen**: Hinweis (Figur markieren, die ziehen muss), Lösung vorspielen. Keine weiteren Erklärungen.
+- **Fortschritt**: je Stufe gelöste Rätsel und Erfolgsquote beim ersten Versuch, Serie richtiger Lösungen. Neue Rätsel werden bevorzugt, danach falsch gelöste wiederholt.
+- **Eigene Rätsel**:
+  1. Stellung aufbauen (Figuren-Palette, Grundstellung/leeres Brett, FEN einfügen, Seite am Zug)
+  2. Lösung vorspielen (eigene Züge + Antworten des Gegners)
+  3. Name und Schwierigkeit vergeben und speichern
+  - Teilen mit Freunden als Text-Code (`SCHACH:…`) über das iOS-Teilen-Menü, Import per „Code einfügen“.
 
 ### 2.4 Modus „Einzelspieler“ (Kann)
 
 - Gegner ist die freie Engine **Stockfish** (läuft lokal im Gerät, kein Internet nötig).
 - Spielstärke in ca. 8 Stufen (Anfänger bis stark), Farbe wählbar.
 - Optional: Hinweis-/Analysefunktion („bester Zug“), Partie nachträglich analysieren.
-- Aufwand: gering, da Stockfish fertig als WebAssembly bzw. Bibliothek verfügbar ist → **empfehle, das direkt mitzunehmen**.
+- Umgesetzt mit Stockfish 19 „lite single“ (≈ 1,8 MB), 8 Stufen.
 
 ### 2.5 Modus „2 Spieler online“ (Zukunft)
 
-- Partie erstellen → Einladungslink/Code an Freund schicken → Freund tritt bei.
+- **Nur gegen Freunde**: Partie erstellen → Einladungslink/Code an Freund schicken → Freund tritt bei. Kein Matchmaking mit Fremden.
 - Echtzeit-Zugübertragung, Schachuhr serverseitig geprüft, Wiederverbinden nach Verbindungsabbruch.
 - Benachrichtigung „Du bist am Zug“ (Push).
 - Optional: Fernschach-Modus (Tage pro Zug) – deutlich einfacher als Echtzeit und passt gut zum Handy.
-- Kein öffentliches Matchmaking mit Fremden im ersten Schritt (vermeidet Moderation, Betrugserkennung etc.).
+- Ohne Benutzerkonto: Spieler werden über ein zufälliges Geräte-Token und einen frei wählbaren Namen identifiziert.
 
 ### 2.6 Bildschirme (Übersicht)
 
@@ -71,7 +72,7 @@ Eine Schach-App für das iPhone, die **vollständig offline** funktioniert und d
 Start
 ├── Neue Partie (2 Spieler lokal) ── Einstellungen ── Brett
 ├── Gegen Computer ─────────────── Stufe/Farbe ── Brett
-├── Rätsel ── Training | Themen | Tagesrätsel ── Rätselbrett
+├── Rätsel ── Leicht | Mittel | Schwer | Eigene (+ Editor) ── Rätselbrett
 ├── Partiehistorie ── Partie nachspielen
 ├── Statistik
 └── Einstellungen
@@ -96,12 +97,12 @@ Start
 | Bereich | Technologie | Begründung |
 |---|---|---|
 | Sprache | TypeScript | Typsicherheit, gute Wartbarkeit |
-| UI-Framework | React (oder Svelte) + Vite | Verbreitet, schnell, gute PWA-Unterstützung |
+| UI-Framework | React + Vite | Verbreitet, schnell, gute PWA-Unterstützung |
 | Schachregeln | `chess.js` | Bewährte Bibliothek: Zuggenerierung, Matt/Remis, FEN/PGN |
 | Schachbrett | `chessground` (Brett von Lichess) | Touch-optimiert, Animationen, Drag & Drop, Pfeile |
 | Engine | Stockfish als WebAssembly (Single-Thread-Variante) | Läuft offline im Web Worker; Single-Thread nötig, da einfache Hoster keine Spezial-Header erlauben |
 | Offline | Service Worker via `vite-plugin-pwa` (Workbox) | Alle Dateien inkl. Rätsel und Engine werden beim ersten Aufruf gecacht |
-| Speicher | IndexedDB (via `Dexie`) | Partien, Rätsel-Fortschritt, Statistik, Einstellungen |
+| Speicher | `localStorage` (+ Export/Import als Datei) | Datenmenge ist klein (Partien, Fortschritt, eigene Rätsel); bleibt in installierten Home-Bildschirm-Apps erhalten |
 | Tests | Vitest (Logik), Playwright (UI, iPhone-Emulation) | |
 | Hosting | GitHub Pages oder Cloudflare Pages | Kostenlos, HTTPS (Pflicht für Service Worker) |
 
@@ -120,7 +121,7 @@ Start
 │      ├── EngineOpponent       (Stockfish im Web Worker)                                          │
 │      └── RemoteOpponent       (später: Online, über Netzwerk)                                    │
 │                                   │                                                              │
-│  Persistenz (IndexedDB)        Assets (Service-Worker-Cache)                                     │
+│  Persistenz (localStorage)        Assets (Service-Worker-Cache)                                     │
 │    games · puzzleProgress ·     App-Code · Figurengrafiken · puzzles.json · stockfish.wasm       │
 │    stats · settings                                                                              │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -143,9 +144,11 @@ Puzzle {           // aus Lichess-Datenbank, mitgeliefert
   rating, themes: string[]
 }
 
-PuzzleAttempt { puzzleId, date, solved, usedHint, timeMs }
+CustomPuzzle {     // eigenes Rätsel
+  id, name, fen, moves: string[], level: 'leicht' | 'mittel' | 'schwer'
+}
 
-PlayerStats { puzzleRating, puzzleRD, streakDays, lastPlayedDate }
+PuzzleProgress { [stufe]: { solved: string[], failed: string[] } }
 ```
 
 ### 3.5 Rätsel-Daten
@@ -153,7 +156,6 @@ PlayerStats { puzzleRating, puzzleRD, streakDays, lastPlayedDate }
 - Lichess-Datenbank (CSV, ~ 250 MB) wird **einmalig per Skript** im Repo gefiltert:
   nur Aufgaben mit hoher Popularität und vielen Spielen, gleichmäßig über Wertungen 600–2600 und Themen verteilt.
 - Ergebnis: komprimierte JSON-Datei (≈ 0,5–1 MB für 10 000 Rätsel), wird mit der App ausgeliefert.
-- Rätsel-Wertung des Spielers: vereinfachtes Glicko-2 (wie Lichess).
 - Später erweiterbar: zusätzliche Rätselpakete nachladen, wenn online.
 
 ### 3.6 Offline-Fähigkeit auf dem iPhone
@@ -188,22 +190,31 @@ Ablauf: Spieler A erstellt Partie → bekommt Link/Code → Spieler B öffnet Li
 |---|---|---|---|
 | M1 | Grundgerüst | Projekt-Setup, PWA, Hosting, Brett mit legalen Zügen | Auf iPhone installierbar, Figuren ziehbar |
 | M2 | 2 Spieler lokal | Partieablauf, Umwandlung, Ende-Erkennung, Uhr, Brettdrehung, Autosave, Historie, PGN-Export | **Erster nutzbarer Stand** |
-| M3 | Rätsel | Datenaufbereitung, Rätselansicht, Training/Themen/Tagesrätsel, Wertung, Statistik | **Alle Muss-Funktionen fertig** |
+| M3 | Rätsel | Datenaufbereitung, Rätselansicht, 3 Schwierigkeitsgrade, eigene Rätsel + Editor, Fortschritt | **Alle Muss-Funktionen fertig** |
 | M4 | Einzelspieler | Stockfish im Worker, Stärkestufen, Hinweisfunktion | Gegen Computer spielbar |
 | M5 | Feinschliff | Designs, Sounds, Haptik, Backup, Barrierefreiheit | Version 1.0 |
 | M6 | Online | Backend, Einladungslinks, Echtzeitzüge, Push | Online-Partien mit Freunden |
 
 ---
 
-## 5. Offene Fragen
+## 5. Entscheidungen (abgestimmt am 06.11.2026)
 
-Siehe Abschnitt im Chat bzw. unten – die Antworten beeinflussen v. a. Plattform und Umfang:
+| Thema | Entscheidung |
+|---|---|
+| Plattform | Web-App (PWA), installiert über Safari „Zum Home-Bildschirm“ |
+| Zielgruppe | Nur für mich und Freunde, kein App Store |
+| Erklärungen | Nicht nötig |
+| Rätsel | 3 wählbare Schwierigkeitsgrade + eigene Rätsel |
+| Lokaler Modus | Schachuhr optional; Tischmodus oder Weiterreichen wählbar |
+| Design | Klassisch (Holzoptik, braunes Brett); iPhone **und** iPad (Hoch- und Querformat) |
+| Online (später) | Nur gegen Freunde |
+| Konto | Vorerst keine Anmeldung |
 
-1. **Plattform:** Ist eine Web-App, die über Safari auf den Home-Bildschirm gelegt wird, für dich ok – oder soll es eine „echte“ App aus dem App Store sein? Hast du Zugang zu einem Mac?
-2. **Zielgruppe:** Nur für dich/Familie/Freunde oder später öffentlich (App Store, viele Nutzer)?
-3. **Spielniveau:** Wer nutzt die App – Anfänger, Kinder, Vereinsspieler? (Beeinflusst Rätselauswahl, Erklärungen, evtl. Lernhilfen.)
-4. **Lokaler Modus:** Handy weiterreichen (Brett dreht sich) oder liegt es zwischen beiden (Tischmodus)? Schachuhr wichtig?
-5. **Rätsel:** Reichen Lichess-Rätsel, oder möchtest du eigene Aufgaben hinzufügen können (z. B. aus Büchern/Training)?
-6. **Design:** Klassisch (Holz) oder modern/flach? Andere Geräte (iPad, Android, PC) relevant?
-7. **Online später:** Nur gegen Freunde per Einladung, oder auch zufällige Gegner? Echtzeit oder Fernschach (Zug pro Tag)?
-8. **Konten/Datenschutz:** Sollen Fortschritte geräteübergreifend synchronisiert werden (erfordert Konto)?
+### Umsetzungsstand
+
+- [x] M1 Grundgerüst (PWA, Offline-Cache, Hosting-Workflow für GitHub Pages)
+- [x] M2 2 Spieler lokal
+- [x] M3 Rätsel (3 Stufen, eigene Rätsel)
+- [x] M4 Einzelspieler gegen Stockfish
+- [ ] M5 Feinschliff (weitere Brett-/Figurendesigns, Puzzle-Rush, Themenauswahl)
+- [ ] M6 Online gegen Freunde
