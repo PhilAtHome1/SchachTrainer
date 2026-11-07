@@ -5,7 +5,9 @@ Schach-Web-App für iPhone und iPad, die nach der Installation **komplett offlin
 - **2 Spieler lokal**: Weiterreichen (Brett dreht sich) oder Tischmodus (Gerät liegt zwischen den Spielern), optionale Schachuhr mit Zeitzuschlag, Remis/Aufgabe, Zugrücknahme, Partien nachspielen und als PGN teilen
 - **Schachrätsel**: 3 × 3.000 Aufgaben aus der Lichess-Datenbank (leicht/mittel/schwer), Hinweis, Lösung, Fortschritt
 - **Eigene Rätsel**: Stellung aufbauen, Lösung vorspielen, als Code mit Freunden teilen
-- **Gegen Computer**: Stockfish 19 (WebAssembly) mit 8 Stufen
+- **Gegen Computer**: Stockfish 19 (WebAssembly) mit 8 Stufen, auch ab einer selbst nachgebauten Stellung
+- **Joker**: bis zu 3 Mal pro Spieler und Partie den besten Zug von Stockfish anzeigen (2 Spieler + Computer)
+- **Online mit Freunden**: Live (optional mit Uhr) oder Fernschach, Einladung per Code – Einrichtung siehe [docs/ONLINE-EINRICHTUNG.md](docs/ONLINE-EINRICHTUNG.md)
 
 Das fachliche und technische Konzept steht in [KONZEPT.md](KONZEPT.md).
 
@@ -29,6 +31,14 @@ npm run dev        # Entwicklungsserver
 npm test           # Unit-Tests
 npm run build      # Produktions-Build nach dist/
 ```
+
+Online-Modus lokal ohne Supabase testen (nachgebauter Server, jeder Browser-Tab ist ein Spieler):
+
+```bash
+VITE_ONLINE_MOCK=1 npm run dev
+```
+
+Mit echtem Server: `.env.local` mit `VITE_SUPABASE_URL=…` und `VITE_SUPABASE_ANON_KEY=…` anlegen.
 
 Die Rätseldateien in `public/puzzles/` werden mit `scripts/build_puzzles.py` aus der
 [Lichess-Rätseldatenbank](https://database.lichess.org/#puzzles) (CC0) erzeugt.

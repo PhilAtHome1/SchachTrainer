@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
 import { useRoute } from './router';
 import { Home, SettingsScreen } from './screens/Home';
-import { EngineSetup, LocalSetup } from './screens/Setup';
+import { EnginePosition, EngineSetup, LocalSetup } from './screens/Setup';
 import { GameScreen } from './screens/GameScreen';
 import { HistoryList, Replay } from './screens/History';
 import { CustomPuzzleList, PuzzleHome, PuzzlePlay } from './screens/Puzzles';
 import { PuzzleEditor } from './screens/PuzzleEditor';
+import { OnlineGameScreen, OnlineHome, OnlineNew } from './screens/Online';
 import type { Level } from './lib/puzzles';
 
 const LEVEL_IDS = ['leicht', 'mittel', 'schwer'];
@@ -17,11 +18,15 @@ function Screen({ route }: { route: string[] }) {
     case 'zwei-spieler':
       return <LocalSetup />;
     case 'computer':
-      return <EngineSetup />;
+      return b === 'stellung' ? <EnginePosition /> : <EngineSetup />;
     case 'spiel':
       return <GameScreen />;
     case 'partien':
       return b ? <Replay id={b} /> : <HistoryList />;
+    case 'online':
+      if (b === 'neu') return <OnlineNew />;
+      if (b === 'partie' && c) return <OnlineGameScreen id={c} />;
+      return <OnlineHome joinCode={b === 'beitreten' ? c : undefined} />;
     case 'einstellungen':
       return <SettingsScreen />;
     case 'raetsel':

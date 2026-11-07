@@ -20,12 +20,14 @@ import {
 import {
   addToHistory,
   getCurrent,
+  JOKER_MAX,
   resultText,
   setCurrent,
   type GameRecord,
   type Result,
 } from '../lib/games';
-import { bestMove } from '../lib/engine';
+import { bestMove, strongestMove } from '../lib/engine';
+import type { DrawShape } from '@lichess-org/chessground/draw';
 import { playMoveSound, sounds, vibrate } from '../lib/sound';
 import { uid } from '../lib/storage';
 import { navigate } from '../router';
@@ -58,6 +60,8 @@ export function GameScreen() {
   const [paused, setPaused] = useState(false);
   const [showEnd, setShowEnd] = useState(true);
   const [thinking, setThinking] = useState(false);
+  const [joker, setJoker] = useState<{ ply: number; shapes: DrawShape[]; san: string } | null>(null);
+  const [jokerLoading, setJokerLoading] = useState(false);
   const turnStart = useRef<number>(Date.now());
   const engineToken = useRef(0);
 
@@ -219,7 +223,7 @@ export function GameScreen() {
       turnColor: cgColor(turn),
       lastMove: lastMoveKeys(chess),
       check: chess.inCheck() ? cgColor(turn) : false,
-      viewOnly: over,
+
       movable: {
         free: false,
         color: !over && humanTurn && !paused ? cgColor(turn) : undefined,
@@ -232,12 +236,13 @@ export function GameScreen() {
         },
       },
       premovable: { enabled: false },
+      drawable: { autoShapes: joker && joker.ply === game.moves.length && !over ? joker.shapes : [] },
     };
-  }, [chess, game, orientation, turn, over, paused, applyMove]);
+  }, [chess, game, orientation, turn, over, paused, applyMove, joker]);
 
   if (!game || !chess) return null;
 
-  const cap = captured(chess);
+  const cap = captured(chess, game.startFen);
 
   function undo() {
     if (!game || game.moves.length === 0) return;
@@ -253,6 +258,31 @@ export function GameScreen() {
     setPending(null);
   }
 
+  const jokersLeft = (c: Color) => JOKER_MAX - (game.jokers?.[c] ?? 0);
+
+  async function takeJoker(c: Color) {
+    if (!game || !chess || over || turn !== c || jokersLeft(c) <= 0 || jokerLoading) return;
+    if (joker && joker.ply === game.moves.length) return; // für diesen Zug schon angezeigt
+    const ply = game.moves.length;
+    setJokerLoading(true);
+    try {
+      const uci = await strongestMove(chess.fen());
+      const m = parseUci(uci);
+      const probe = replay(game.moves, game.startFen);
+      const san = probe.move({ from: m.from, to: m.to, promotion: m.promotion }).san;
+      const current = getCurrent();
+      if (!current || current.moves.length !== ply) return; // inzwischen gezogen
+      const jokers = { w: current.jokers?.w ?? 0, b: current.jokers?.b ?? 0 };
+      jokers[c] += 1;
+      persist({ ...current, jokers });
+      setJoker({ ply, san, shapes: [{ orig: m.from as Key, dest: m.to as Key, brush: 'green' }] });
+    } catch {
+      /* Engine nicht verfügbar – Joker wird nicht verbraucht */
+    } finally {
+      setJokerLoading(false);
+    }
+  }
+
   function newGame(swap: boolean) {
     if (!game) return;
     const g: GameRecord = {
@@ -266,6 +296,7 @@ export function GameScreen() {
       white: swap && game.mode === 'local' ? game.black : game.white,
       black: swap && game.mode === 'local' ? game.white : game.black,
       clock: game.tc ? { w: game.tc.initial * 1000, b: game.tc.initial * 1000 } : undefined,
+      jokers: undefined,
     };
     if (game.mode === 'engine' && swap) {
       g.humanColor = opposite(game.humanColor ?? 'w');
@@ -302,6 +333,14 @@ export function GameScreen() {
         </div>
         {showActions && (
           <div className="player-actions">
+            <button
+              className={'small-btn joker' + (jokerLoading && active ? ' loading' : '')}
+              disabled={!active || jokersLeft(c) <= 0 || paused}
+              onClick={() => takeJoker(c)}
+              title="Joker: bester Zug von Stockfish"
+            >
+              💡<span className="joker-count">{jokersLeft(c)}</span>
+            </button>
             {game.mode === 'local' && (
               <button className="small-btn" onClick={() => setPending({ kind: 'draw-offer', by: c })} title="Remis anbieten">
                 ½
@@ -415,7 +454,12 @@ export function GameScreen() {
         {panel(bottomColor, 'bottom')}
       </div>
       <div className="game-side">
-        <MoveList moves={game.moves} />
+        {joker && joker.ply === game.moves.length && !over && (
+          <div className={'joker-msg' + (tableMode && turn === 'b' ? ' rotated' : '')}>
+            💡 Joker für {name(turn)}: <strong>{joker.san}</strong>
+          </div>
+        )}
+        <MoveList moves={game.moves} startFen={game.startFen} />
         <div className="toolbar">
           <button className="tool" onClick={() => navigate('#/')}>
             <span>⌂</span>Menü

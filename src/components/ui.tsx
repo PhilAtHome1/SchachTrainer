@@ -116,29 +116,41 @@ export function MoveList({
   moves,
   current,
   onSelect,
+  startFen,
 }: {
   moves: string[];
   current?: number; // Anzahl gespielter Halbzüge, die angezeigt werden
   onSelect?: (ply: number) => void;
+  startFen?: string;
 }) {
+  // Startet die Partie aus einer Stellung mit Schwarz am Zug, beginnt die Liste mit "n…"
+  const parts = startFen?.split(' ') ?? [];
+  const offset = parts[1] === 'b' ? 1 : 0;
+  const firstNo = Number(parts[5]) || 1;
   const rows: ReactNode[] = [];
-  for (let i = 0; i < moves.length; i += 2) {
-    const cell = (ply: number) =>
-      ply < moves.length ? (
+  const total = moves.length + offset;
+  for (let v = 0; v < total; v += 2) {
+    const cell = (vi: number) => {
+      const ply = vi - offset;
+      return ply >= 0 && ply < moves.length ? (
         <span
+          key={vi}
           className={'mv' + (current === ply + 1 ? ' current' : '')}
           onClick={onSelect ? () => onSelect(ply + 1) : undefined}
         >
           {moves[ply]}
         </span>
       ) : (
-        <span className="mv" />
+        <span key={vi} className="mv">
+          {ply < 0 ? '…' : ''}
+        </span>
       );
+    };
     rows.push(
-      <div className="mv-row" key={i}>
-        <span className="mv-no">{i / 2 + 1}.</span>
-        {cell(i)}
-        {cell(i + 1)}
+      <div className="mv-row" key={v}>
+        <span className="mv-no">{firstNo + v / 2}.</span>
+        {cell(v)}
+        {cell(v + 1)}
       </div>,
     );
   }

@@ -1,6 +1,6 @@
 # SchachTrainer – Konzept
 
-Stand: 06.11.2026 · Status: abgestimmt, Version 0.1 umgesetzt (M1–M4)
+Stand: 06.11.2026 · Status: Version 0.2 umgesetzt (M1–M4, Joker, Spiel ab Stellung, Online M6)
 
 ---
 
@@ -35,6 +35,7 @@ Eine Schach-App für iPhone und iPad, die **vollständig offline** funktioniert 
   - *Tischmodus*: Brett bleibt fest, Figuren des Gegners stehen „auf dem Kopf“ (Handy liegt zwischen den Spielern).
 - **Schachuhr** (optional) mit Inkrement; Zeitüberschreitung beendet die Partie.
 - **Aktionen**: Zug zurücknehmen (nur wenn beide zustimmen / einstellbar), Remis anbieten, Aufgeben.
+- **Joker**: Jeder Spieler darf pro Partie bis zu **3 Mal** den besten Zug von Stockfish anzeigen lassen (grüner Pfeil + Zug in Notation). Nur am eigenen Zug nutzbar; Zurücknehmen gibt keinen Joker zurück.
 - **Partie-Ende**: Ergebnisanzeige mit Grund (Matt, Aufgabe, Zeit, Remis-Art).
 - **Speichern**: Laufende Partie wird automatisch gespeichert (App schließen ≠ Partie verloren). Abgeschlossene Partien landen in einer **Partiehistorie**, nachspielbar Zug für Zug. Export als PGN (Teilen-Menü).
 
@@ -51,27 +52,33 @@ Eine Schach-App für iPhone und iPad, die **vollständig offline** funktioniert 
   3. Name und Schwierigkeit vergeben und speichern
   - Teilen mit Freunden als Text-Code (`SCHACH:…`) über das iOS-Teilen-Menü, Import per „Code einfügen“.
 
-### 2.4 Modus „Einzelspieler“ (Kann)
+### 2.4 Modus „Einzelspieler“ (gegen Stockfish)
 
-- Gegner ist die freie Engine **Stockfish** (läuft lokal im Gerät, kein Internet nötig).
-- Spielstärke in ca. 8 Stufen (Anfänger bis stark), Farbe wählbar.
-- Optional: Hinweis-/Analysefunktion („bester Zug“), Partie nachträglich analysieren.
-- Umgesetzt mit Stockfish 19 „lite single“ (≈ 1,8 MB), 8 Stufen.
+- Gegner ist die freie Engine **Stockfish 19** („lite single“, ≈ 1,8 MB), läuft lokal im Gerät, kein Internet nötig.
+- 8 Spielstärken, Farbe wählbar (Weiß / Schwarz / Zufall).
+- **Joker** wie im 2-Spieler-Modus (3 pro Partie).
+- **Spiel ab eigener Stellung**: Spielstand im Stellungseditor nachbauen (oder FEN einfügen), Seite am Zug wählen, dann gegen Stockfish weiterspielen. Rochaderechte werden aus der Stellung abgeleitet.
+- Beim Nachspielen einer beendeten Partie: **„Ab hier vs. PC“** setzt die Partie ab dem gewählten Zug gegen Stockfish fort.
 
-### 2.5 Modus „2 Spieler online“ (Zukunft)
+### 2.5 Modus „2 Spieler online“ (nur mit Freunden)
 
-- **Nur gegen Freunde**: Partie erstellen → Einladungslink/Code an Freund schicken → Freund tritt bei. Kein Matchmaking mit Fremden.
-- Echtzeit-Zugübertragung, Schachuhr serverseitig geprüft, Wiederverbinden nach Verbindungsabbruch.
-- Benachrichtigung „Du bist am Zug“ (Push).
-- Optional: Fernschach-Modus (Tage pro Zug) – deutlich einfacher als Echtzeit und passt gut zum Handy.
-- Ohne Benutzerkonto: Spieler werden über ein zufälliges Geräte-Token und einen frei wählbaren Namen identifiziert.
+- **Einladung per Code**: Partie erstellen → 6-stelligen Code über das Teilen-Menü schicken → Freund tippt „Beitreten“ und gibt den Code ein. Kein Matchmaking mit Fremden.
+- **Live**: beide spielen gleichzeitig, optional mit Schachuhr (Uhr wird auf dem Server geführt; Zeitüberschreitung stellt der Server fest).
+- **Fernschach**: ohne Uhr, jeder zieht, wann er Zeit hat – auch über Tage. Die App kann zwischendurch geschlossen werden.
+- Remis anbieten/annehmen/ablehnen, Aufgeben. Eine wartende Partie kann gelöscht werden.
+- Übersicht „Du bist am Zug“ / „Gegner ist am Zug“ / „Wartet auf Mitspieler“ / „Beendet“; die Startseite zeigt die Anzahl der Partien, in denen man am Zug ist.
+- Beendete Online-Partien landen in der lokalen Partiehistorie (Nachspielen, PGN).
+- **Ohne Benutzerkonto**: anonyme Anmeldung pro Gerät + frei wählbarer Name.
+- Kein Joker in Online-Partien (Fairness).
+- Noch offen: Push-Benachrichtigung „Du bist am Zug“.
 
 ### 2.6 Bildschirme (Übersicht)
 
 ```
 Start
 ├── Neue Partie (2 Spieler lokal) ── Einstellungen ── Brett
-├── Gegen Computer ─────────────── Stufe/Farbe ── Brett
+├── Online mit Freunden ── Übersicht | Neue Partie | Beitreten (Code) ── Brett
+├── Gegen Computer ─────────────── Stufe/Farbe (+ eigene Stellung) ── Brett
 ├── Rätsel ── Leicht | Mittel | Schwer | Eigene (+ Editor) ── Rätselbrett
 ├── Partiehistorie ── Partie nachspielen
 ├── Statistik
@@ -166,15 +173,16 @@ PuzzleProgress { [stufe]: { solved: string[], failed: string[] } }
 - Zusätzlich: Export/Import der eigenen Daten (Backup-Datei) als Absicherung.
 - Updates: Neue Version wird im Hintergrund geladen, Hinweis „Update verfügbar – neu starten“.
 
-### 3.7 Online-Modus (Ausblick)
+### 3.7 Online-Modus
 
-| Option | Beschreibung | Einschätzung |
-|---|---|---|
-| **Supabase** (Postgres + Realtime + Auth) | Partie = Datenbankzeile, Züge werden per Realtime an den Gegner übertragen | *Empfehlung*: kostenloser Einstieg, wenig eigener Servercode |
-| Firebase (Firestore) | Ähnlich, Google-Dienst | Gut, aber Datenstandort/Abhängigkeit beachten |
-| Eigener Server (Node.js + WebSockets, z. B. Cloudflare Durable Objects) | Volle Kontrolle, Uhr serverseitig exakt | Mehr Aufwand, erst bei Bedarf |
+Umsetzung mit **Supabase** (Postgres + Realtime + anonyme Anmeldung), Einrichtung siehe `docs/ONLINE-EINRICHTUNG.md`.
 
-Ablauf: Spieler A erstellt Partie → bekommt Link/Code → Spieler B öffnet Link → beide verbinden sich mit dem Partie-Kanal → jeder Zug wird **serverseitig mit chess.js validiert** (Schutz vor Manipulation) → an den Gegner gesendet. Anmeldung anfangs anonym oder per Magic-Link (E-Mail), kein Passwort.
+- **Datenmodell**: eine Tabelle `games` (Code, Modus, Spieler-IDs und Namen, Züge als SAN-Liste, aktuelle FEN, Uhrzeiten, Remis-Angebot, Ergebnis). Schema: `supabase/schema.sql`.
+- **Sicherheit**: Row Level Security – jeder sieht nur Partien, an denen er beteiligt ist. Die Tabelle ist für Clients nur lesbar; alle Änderungen laufen über Datenbankfunktionen (`create_game`, `join_game`, `make_move`, `resign_game`, `offer_draw`, `answer_draw`, `claim_timeout`, `abort_game`).
+- **Prüfungen auf dem Server**: richtiger Spieler am Zug, Spielstand aktuell (Zugnummer), Uhr inkl. Zeitzuschlag, Zeitüberschreitung. Die **Legalität der Züge** prüfen beide Apps mit chess.js (ein ungültiger Zug des Gegners wird angezeigt). Für Partien unter Freunden ist das ausreichend; eine serverseitige Zugprüfung wäre per Supabase Edge Function nachrüstbar.
+- **Echtzeit**: Änderungen an der Partie kommen per Realtime-Kanal; zusätzlich Neuladen beim Zurückkehren in die App, bei wiederhergestellter Verbindung und alle 20 s als Sicherheitsnetz.
+- **Konfiguration**: `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` beim Build (GitHub-Variablen `SUPABASE_URL`, `SUPABASE_ANON_KEY`). Ohne Konfiguration zeigt die App einen Hinweis zur Einrichtung.
+- **Tests**: Schema mit lokalem Postgres (Mehrspieler-Szenario) geprüft; die Oberfläche mit einem nachgebauten Server (`VITE_ONLINE_MOCK=1`, zwei Browser-Tabs als zwei Spieler).
 
 ### 3.8 Qualitätssicherung
 
@@ -207,7 +215,8 @@ Ablauf: Spieler A erstellt Partie → bekommt Link/Code → Spieler B öffnet Li
 | Rätsel | 3 wählbare Schwierigkeitsgrade + eigene Rätsel |
 | Lokaler Modus | Schachuhr optional; Tischmodus oder Weiterreichen wählbar |
 | Design | Klassisch (Holzoptik, braunes Brett); iPhone **und** iPad (Hoch- und Querformat) |
-| Online (später) | Nur gegen Freunde |
+| Online | Nur gegen Freunde; Supabase; Live und Fernschach (abgestimmt am 07.11.2026) |
+| Joker | Bester Zug von Stockfish, bis zu 3 Mal pro Spieler und Partie (2 Spieler + Computer) |
 | Konto | Vorerst keine Anmeldung |
 
 ### Umsetzungsstand
@@ -216,5 +225,8 @@ Ablauf: Spieler A erstellt Partie → bekommt Link/Code → Spieler B öffnet Li
 - [x] M2 2 Spieler lokal
 - [x] M3 Rätsel (3 Stufen, eigene Rätsel)
 - [x] M4 Einzelspieler gegen Stockfish
+- [x] Joker (3 pro Spieler und Partie) im 2-Spieler- und Computer-Modus
+- [x] Gegen Stockfish ab eigener Stellung
+- [x] M6 Online gegen Freunde (Live + Fernschach, Supabase)
+- [ ] Push-Benachrichtigung „Du bist am Zug“
 - [ ] M5 Feinschliff (weitere Brett-/Figurendesigns, Puzzle-Rush, Themenauswahl)
-- [ ] M6 Online gegen Freunde

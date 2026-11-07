@@ -44,11 +44,9 @@ function init(): Promise<void> {
 
 let queue: Promise<unknown> = Promise.resolve();
 
-/** Liefert den Engine-Zug (UCI, z. B. "e2e4" oder "e7e8q") für eine Stellung. */
-export function bestMove(fen: string, level: number): Promise<string> {
+function run(fen: string, skill: number, go: string): Promise<string> {
   const job = queue.then(async () => {
     await init();
-    const lv = ENGINE_LEVELS[Math.max(0, Math.min(ENGINE_LEVELS.length - 1, level))];
     return new Promise<string>((resolve) => {
       onLine = (line) => {
         if (line.startsWith('bestmove')) {
@@ -58,13 +56,24 @@ export function bestMove(fen: string, level: number): Promise<string> {
       };
       const w = worker!;
       w.postMessage('ucinewgame');
-      w.postMessage(`setoption name Skill Level value ${lv.skill}`);
+      w.postMessage(`setoption name Skill Level value ${skill}`);
       w.postMessage(`position fen ${fen}`);
-      w.postMessage(`go depth ${lv.depth} movetime 3000`);
+      w.postMessage(go);
     });
   });
   queue = job.catch(() => undefined);
   return job;
+}
+
+/** Liefert den Engine-Zug (UCI, z. B. "e2e4" oder "e7e8q") für eine Stellung. */
+export function bestMove(fen: string, level: number): Promise<string> {
+  const lv = ENGINE_LEVELS[Math.max(0, Math.min(ENGINE_LEVELS.length - 1, level))];
+  return run(fen, lv.skill, `go depth ${lv.depth} movetime 3000`);
+}
+
+/** Bester Zug in voller Stärke (für den Joker). */
+export function strongestMove(fen: string): Promise<string> {
+  return run(fen, 20, 'go depth 18 movetime 2000');
 }
 
 export function warmUpEngine() {
