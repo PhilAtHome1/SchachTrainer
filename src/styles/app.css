@@ -939,3 +939,39 @@ textarea:focus {
     padding-top: calc(var(--safe-top) + 20px);
   }
 }
+
+/* ---------- Joker ---------- */
+.small-btn.joker {
+  position: relative;
+  font-size: 1rem;
+}
+.joker-count {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #1b120c;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+.small-btn.joker:disabled .joker-count {
+  background: #6b5640;
+  color: var(--text);
+}
+.small-btn.joker.loading {
+  animation: blink 0.6s infinite alternate;
+}
+.joker-msg {
+  background: rgba(127, 179, 90, 0.18);
+  border: 1px solid rgba(127, 179, 90, 0.5);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.joker-msg.rotated {
+  transform: rotate(180deg);
+}

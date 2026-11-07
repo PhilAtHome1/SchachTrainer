@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
 import { useRoute } from './router';
 import { Home, SettingsScreen } from './screens/Home';
-import { EngineSetup, LocalSetup } from './screens/Setup';
+import { EnginePosition, EngineSetup, LocalSetup } from './screens/Setup';
 import { GameScreen } from './screens/GameScreen';
 import { HistoryList, Replay } from './screens/History';
 import { CustomPuzzleList, PuzzleHome, PuzzlePlay } from './screens/Puzzles';
@@ -17,7 +17,7 @@ function Screen({ route }: { route: string[] }) {
     case 'zwei-spieler':
       return <LocalSetup />;
     case 'computer':
-      return <EngineSetup />;
+      return b === 'stellung' ? <EnginePosition /> : <EngineSetup />;
     case 'spiel':
       return <GameScreen />;
     case 'partien':

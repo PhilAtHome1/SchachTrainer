@@ -11,7 +11,7 @@ export interface TimeControl {
 
 export interface GameRecord {
   id: string;
-  mode: 'local' | 'engine';
+  mode: 'local' | 'engine' | 'online';
   createdAt: number;
   updatedAt: number;
   white: string;
@@ -25,7 +25,12 @@ export interface GameRecord {
   humanColor?: Color;
   result?: Result;
   reason?: string;
+  /** Verbrauchte Joker je Farbe */
+  jokers?: Record<Color, number>;
 }
+
+/** So oft darf jeder Spieler pro Partie den Joker (bester Zug von Stockfish) nutzen. */
+export const JOKER_MAX = 3;
 
 const CURRENT = 'current-game';
 const HISTORY = 'history';
@@ -57,7 +62,7 @@ export function toPgn(g: GameRecord): string {
   const chess = replay(g.moves, g.startFen);
   const d = new Date(g.createdAt);
   const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-  chess.setHeader('Event', g.mode === 'engine' ? 'Partie gegen Computer' : 'Lokale Partie');
+  chess.setHeader('Event', g.mode === 'engine' ? 'Partie gegen Computer' : g.mode === 'online' ? 'Online-Partie' : 'Lokale Partie');
   chess.setHeader('Site', 'SchachTrainer');
   chess.setHeader('Date', date);
   chess.setHeader('White', g.white);

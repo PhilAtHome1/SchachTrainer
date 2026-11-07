@@ -4,6 +4,7 @@ import { Dialog, Header, MoveList } from '../components/ui';
 import { cgColor, lastMoveKeys, replay } from '../lib/chess';
 import { deleteFromHistory, getHistory, resultText, toPgn } from '../lib/games';
 import { navigate } from '../router';
+import { getEnginePrefs, startEngineGame } from './Setup';
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
@@ -113,7 +114,7 @@ export function Replay({ id }: { id: string }) {
         </div>
       </div>
       <div className="game-side">
-        <MoveList moves={game.moves} current={ply} onSelect={setPly} />
+        <MoveList moves={game.moves} current={ply} onSelect={setPly} startFen={game.startFen} />
         {msg && <div className="toast">{msg}</div>}
         <div className="toolbar">
           <button className="tool" onClick={() => setFlip(!flip)}>
@@ -121,6 +122,13 @@ export function Replay({ id }: { id: string }) {
           </button>
           <button className="tool" onClick={share}>
             <span>⇪</span>PGN
+          </button>
+          <button
+            className="tool"
+            disabled={chess.isGameOver()}
+            onClick={() => startEngineGame(getEnginePrefs(), chess.fen(), chess.turn())}
+          >
+            <span>⚙</span>Ab hier vs. PC
           </button>
           <button className="tool" onClick={() => setConfirmDelete(true)}>
             <span>🗑</span>Löschen

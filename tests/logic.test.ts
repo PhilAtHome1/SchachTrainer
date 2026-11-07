@@ -71,3 +71,14 @@ describe('Stellungseditor', () => {
     expect(positionError(buildFen('6k1/8/8/8/8/8/8/r5K1', 'b'))).toMatch(/Schach/);
   });
 });
+
+describe('Material ab eigener Stellung', () => {
+  it('zählt nur Figuren, die seit der Startstellung geschlagen wurden', () => {
+    const start = '4k2r/8/8/8/8/8/8/3QK3 w - - 0 1';
+    const c = new Chess(start);
+    expect(captured(c, start).lost).toEqual({ w: [], b: [] });
+    c.move('Qd8+');
+    c.move('Kxd8');
+    expect(captured(c, start).lost).toEqual({ w: ['q'], b: [] });
+  });
+});

@@ -5,8 +5,9 @@ import { setCurrent, type GameRecord, type TimeControl, type ViewMode } from '..
 import { load, save, uid } from '../lib/storage';
 import type { Color } from '../lib/chess';
 import { navigate } from '../router';
+import { PositionBuilder, START_BOARD } from '../components/PositionBuilder';
 
-const TIME_CONTROLS: { id: string; label: string; tc: TimeControl | null }[] = [
+export const TIME_CONTROLS: { id: string; label: string; tc: TimeControl | null }[] = [
   { id: 'none', label: 'Ohne Uhr', tc: null },
   { id: '1+0', label: '1 min', tc: { initial: 60, inc: 0 } },
   { id: '3+2', label: '3 + 2', tc: { initial: 180, inc: 2 } },
@@ -136,34 +137,76 @@ export function LocalSetup() {
   );
 }
 
-interface EnginePrefs {
+export interface EnginePrefs {
   level: number;
   color: Color | 'random';
+  start?: 'normal' | 'position';
+  board?: string;
+  turn?: Color;
+}
+
+export const getEnginePrefs = () => load<EnginePrefs>('engine-prefs', { level: 2, color: 'w' });
+
+/** Legt eine Partie gegen Stockfish an (optional ab einer eigenen Stellung) und öffnet sie. */
+export function startEngineGame(p: EnginePrefs, startFen?: string, humanColor?: Color) {
+  const human: Color = humanColor ?? (p.color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : p.color);
+  const cpu = `Computer (${p.level + 1})`;
+  const g: GameRecord = {
+    id: uid(),
+    mode: 'engine',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    white: human === 'w' ? 'Du' : cpu,
+    black: human === 'b' ? 'Du' : cpu,
+    startFen,
+    moves: [],
+    tc: null,
+    view: 'pass',
+    engineLevel: p.level,
+    humanColor: human,
+  };
+  setCurrent(g);
+  navigate('#/spiel');
+}
+
+function EngineOptions({ p, setP }: { p: EnginePrefs; setP: (p: EnginePrefs) => void }) {
+  return (
+    <>
+      <section className="card">
+        <h3>Spielstärke</h3>
+        <div className="level-list">
+          {ENGINE_LEVELS.map((l, i) => (
+            <button key={i} className={'chip wide' + (p.level === i ? ' active' : '')} onClick={() => setP({ ...p, level: i })}>
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="card">
+        <h3>Deine Farbe</h3>
+        <Segmented
+          value={p.color}
+          onChange={(color) => setP({ ...p, color })}
+          options={[
+            { value: 'w', label: 'Weiß' },
+            { value: 'random', label: 'Zufall' },
+            { value: 'b', label: 'Schwarz' },
+          ]}
+        />
+      </section>
+    </>
+  );
 }
 
 export function EngineSetup() {
-  const [p, setP] = useState<EnginePrefs>(() => load<EnginePrefs>('engine-prefs', { level: 2, color: 'w' }));
+  const [p, setP] = useState<EnginePrefs>(getEnginePrefs);
   warmUpEngine();
+  const fromPosition = p.start === 'position';
 
   function start() {
     save('engine-prefs', p);
-    const human: Color = p.color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : p.color;
-    const cpu = `Computer (${p.level + 1})`;
-    const g: GameRecord = {
-      id: uid(),
-      mode: 'engine',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      white: human === 'w' ? 'Du' : cpu,
-      black: human === 'b' ? 'Du' : cpu,
-      moves: [],
-      tc: null,
-      view: 'pass',
-      engineLevel: p.level,
-      humanColor: human,
-    };
-    setCurrent(g);
-    navigate('#/spiel');
+    if (fromPosition) navigate('#/computer/stellung');
+    else startEngineGame(p);
   }
 
   return (
@@ -171,31 +214,50 @@ export function EngineSetup() {
       <Header title="Gegen Computer" />
       <div className="content">
         <section className="card">
-          <h3>Spielstärke</h3>
-          <div className="level-list">
-            {ENGINE_LEVELS.map((l, i) => (
-              <button key={i} className={'chip wide' + (p.level === i ? ' active' : '')} onClick={() => setP({ ...p, level: i })}>
-                {l.label}
-              </button>
-            ))}
+          <h3>Startstellung</h3>
+          <div className="choice-grid">
+            <button className={'choice' + (!fromPosition ? ' active' : '')} onClick={() => setP({ ...p, start: 'normal' })}>
+              <strong>Grundstellung</strong>
+              <small>Normale Partie von Anfang an.</small>
+            </button>
+            <button className={'choice' + (fromPosition ? ' active' : '')} onClick={() => setP({ ...p, start: 'position' })}>
+              <strong>Eigene Stellung</strong>
+              <small>Spielstand nachbauen und gegen Stockfish weiterspielen.</small>
+            </button>
           </div>
         </section>
-        <section className="card">
-          <h3>Deine Farbe</h3>
-          <Segmented
-            value={p.color}
-            onChange={(color) => setP({ ...p, color })}
-            options={[
-              { value: 'w', label: 'Weiß' },
-              { value: 'random', label: 'Zufall' },
-              { value: 'b', label: 'Schwarz' },
-            ]}
-          />
-        </section>
+        <EngineOptions p={p} setP={setP} />
         <button className="btn primary big" onClick={start}>
-          Partie starten
+          {fromPosition ? 'Weiter: Stellung aufbauen' : 'Partie starten'}
         </button>
       </div>
     </div>
+  );
+}
+
+export function EnginePosition() {
+  const [p] = useState<EnginePrefs>(getEnginePrefs);
+  const [board, setBoard] = useState(p.board ?? START_BOARD);
+  const [turn, setTurn] = useState<Color>(p.turn ?? 'w');
+  warmUpEngine();
+  const colorText = p.color === 'random' ? 'zufällige Farbe' : p.color === 'w' ? 'Weiß' : 'Schwarz';
+  return (
+    <PositionBuilder
+      board={board}
+      turn={turn}
+      onBoardChange={(b) => {
+        setBoard(b);
+        save('engine-prefs', { ...p, board: b, turn });
+      }}
+      onTurnChange={(t) => {
+        setTurn(t);
+        save('engine-prefs', { ...p, board, turn: t });
+      }}
+      title="Stellung nachbauen"
+      subtitle={`Danach spielst du ${colorText} gegen ${ENGINE_LEVELS[p.level].label.split(' –')[0]}`}
+      onBack={() => navigate('#/computer')}
+      doneLabel="Gegen Stockfish spielen"
+      onDone={(fen) => startEngineGame(p, fen)}
+    />
   );
 }

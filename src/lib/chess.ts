@@ -56,19 +56,28 @@ const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 } as const;
 const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 } as const;
 type Role = keyof typeof START_COUNT;
 
-/** Geschlagene Figuren je Farbe (die die Farbe verloren hat) und Materialbilanz. */
-export function captured(chess: Chess): { lost: Record<Color, Role[]>; diff: number } {
+function countPieces(chess: Chess): Record<Color, Record<Role, number>> {
   const count: Record<Color, Record<Role, number>> = {
     w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
     b: { p: 0, n: 0, b: 0, r: 0, q: 0 },
   };
   for (const row of chess.board()) for (const p of row) if (p && p.type !== 'k') count[p.color][p.type as Role]++;
+  return count;
+}
+
+/**
+ * Geschlagene Figuren je Farbe (die die Farbe verloren hat) und Materialbilanz.
+ * Bei Partien ab einer eigenen Stellung wird gegen diese Startstellung gezählt.
+ */
+export function captured(chess: Chess, startFen?: string): { lost: Record<Color, Role[]>; diff: number } {
+  const count = countPieces(chess);
+  const start = startFen ? countPieces(new Chess(startFen)) : { w: { ...START_COUNT }, b: { ...START_COUNT } };
   const lost: Record<Color, Role[]> = { w: [], b: [] };
   let diff = 0;
   for (const c of ['w', 'b'] as Color[]) {
     for (const r of ['q', 'r', 'b', 'n', 'p'] as Role[]) {
       // Umwandlungen können mehr Figuren als zu Beginn ergeben
-      const missing = Math.max(0, START_COUNT[r] - count[c][r]);
+      const missing = Math.max(0, start[c][r] - count[c][r]);
       for (let i = 0; i < missing; i++) lost[c].push(r);
       diff += (c === 'w' ? 1 : -1) * count[c][r] * VALUE[r];
     }
