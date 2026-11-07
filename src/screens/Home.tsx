@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { countMyTurns } from './Online';
+import { onlineServerHost } from '../lib/online';
 import { Header } from '../components/ui';
 import { getCurrent } from '../lib/games';
 import { updateSettings, useSettings } from '../lib/settings';
@@ -164,7 +165,9 @@ export function SettingsScreen() {
             Rätsel: <a href="https://database.lichess.org/#puzzles">Lichess-Rätseldatenbank</a> (CC0). Engine: Stockfish (GPLv3).
             Brett: chessground (GPLv3), Figuren: cburnett (CC BY-SA 3.0).
           </p>
-          <p>Version {__APP_VERSION__}</p>
+          <p>
+            Version {__APP_VERSION__} · Online-Server: {onlineServerHost}
+          </p>
         </section>
       </div>
     </div>

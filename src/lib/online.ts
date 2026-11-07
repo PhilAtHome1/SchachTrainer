@@ -46,8 +46,36 @@ export interface Backend {
   subscribe(id: string, onChange: (g: OnlineGame) => void, onStatus?: (connected: boolean) => void): () => void;
 }
 
-const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+/**
+ * Bereinigt die eingetragene Projekt-Adresse: Leerzeichen und Anführungszeichen weg,
+ * fehlendes https:// ergänzen und nur den Ursprung behalten. So funktionieren auch
+ * Varianten wie "https://xyz.supabase.co/rest/v1/" oder "xyz.supabase.co/".
+ */
+export function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
+  let v = (raw ?? '').trim().replace(/^['"]|['"]$/g, '').trim();
+  if (!v) return undefined;
+  if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+  try {
+    return new globalThis.URL(v).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+export function normalizeKey(raw: string | undefined): string | undefined {
+  const v = (raw ?? '').trim().replace(/^['"]|['"]$/g, '').trim();
+  return v || undefined;
+}
+
+const URL = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL as string | undefined);
+const KEY = normalizeKey(import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
+
+/** Für die Anzeige in den Einstellungen (Fehlersuche). */
+export const onlineServerHost = serverHost();
+function serverHost(): string {
+  if (import.meta.env.VITE_ONLINE_MOCK === '1') return 'Testserver (lokal)';
+  return URL ? new globalThis.URL(URL).host : 'nicht eingerichtet';
+}
 const MOCK = import.meta.env.VITE_ONLINE_MOCK === '1';
 
 export const onlineConfigured = MOCK || !!(URL && KEY);
@@ -161,5 +189,10 @@ export function errorText(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (!navigator.onLine || /Failed to fetch|NetworkError|Load failed/i.test(msg)) return 'Keine Internetverbindung.';
   if (/anonymous/i.test(msg)) return 'Anonyme Anmeldung ist im Supabase-Projekt nicht aktiviert.';
+  if (/invalid path|requested path is invalid/i.test(msg))
+    return 'Die Server-Adresse ist ungültig. In SUPABASE_URL gehört nur die Project URL (z. B. https://abcd.supabase.co).';
+  if (/could not find the function|schema cache|relation .*games.* does not exist/i.test(msg))
+    return 'Die Datenbank ist noch nicht eingerichtet: supabase/schema.sql im SQL Editor ausführen.';
+  if (/invalid api key|no api key|jwt/i.test(msg)) return 'Der Supabase-Key ist ungültig. SUPABASE_ANON_KEY prüfen.';
   return msg;
 }

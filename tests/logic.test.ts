@@ -112,3 +112,20 @@ describe('Online-Hilfen', () => {
     expect(remainingMs({ ...base, tc_initial: null }, 'w', 0)).toBeNull();
   });
 });
+
+import { normalizeKey, normalizeSupabaseUrl } from '../src/lib/online';
+
+describe('Supabase-Konfiguration', () => {
+  it('reduziert die Adresse auf die Project URL', () => {
+    expect(normalizeSupabaseUrl('https://abcd.supabase.co')).toBe('https://abcd.supabase.co');
+    expect(normalizeSupabaseUrl('https://abcd.supabase.co/')).toBe('https://abcd.supabase.co');
+    expect(normalizeSupabaseUrl(' https://abcd.supabase.co/rest/v1/ ')).toBe('https://abcd.supabase.co');
+    expect(normalizeSupabaseUrl('"abcd.supabase.co"')).toBe('https://abcd.supabase.co');
+    expect(normalizeSupabaseUrl('')).toBeUndefined();
+    expect(normalizeSupabaseUrl('https://')).toBeUndefined();
+  });
+  it('bereinigt den Key', () => {
+    expect(normalizeKey(' "sb_publishable_x"\n')).toBe('sb_publishable_x');
+    expect(normalizeKey('  ')).toBeUndefined();
+  });
+});
