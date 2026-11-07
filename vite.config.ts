@@ -39,5 +39,5 @@ export default defineConfig({
       },
     }),
   ],
-  test: { environment: 'node' },
+  test: { environment: 'node', env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' } },
 } as any);

@@ -82,3 +82,33 @@ describe('Material ab eigener Stellung', () => {
     expect(captured(c, start).lost).toEqual({ w: ['q'], b: [] });
   });
 });
+
+import { isMyTurn, myColor, remainingMs, type OnlineGame } from '../src/lib/online';
+
+describe('Online-Hilfen', () => {
+  const base = {
+    status: 'active',
+    white_id: 'A',
+    black_id: 'B',
+    fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+    moves: ['e4'],
+    tc_initial: 60,
+    tc_inc: 0,
+    clock_w: 60000,
+    clock_b: 60000,
+    last_move_at: new Date(1_000_000).toISOString(),
+  } as unknown as OnlineGame;
+
+  it('bestimmt Farbe und Zugrecht', () => {
+    expect(myColor(base, 'A')).toBe('w');
+    expect(myColor(base, 'X')).toBeNull();
+    expect(isMyTurn(base, 'B')).toBe(true);
+    expect(isMyTurn(base, 'A')).toBe(false);
+  });
+
+  it('zieht nur beim Spieler am Zug Zeit ab', () => {
+    expect(remainingMs(base, 'b', 1_000_000 + 5000)).toBe(55000);
+    expect(remainingMs(base, 'w', 1_000_000 + 5000)).toBe(60000);
+    expect(remainingMs({ ...base, tc_initial: null }, 'w', 0)).toBeNull();
+  });
+});

@@ -7,6 +7,7 @@ import { GameScreen } from './screens/GameScreen';
 import { HistoryList, Replay } from './screens/History';
 import { CustomPuzzleList, PuzzleHome, PuzzlePlay } from './screens/Puzzles';
 import { PuzzleEditor } from './screens/PuzzleEditor';
+import { OnlineGameScreen, OnlineHome, OnlineNew } from './screens/Online';
 import type { Level } from './lib/puzzles';
 
 const LEVEL_IDS = ['leicht', 'mittel', 'schwer'];
@@ -22,6 +23,10 @@ function Screen({ route }: { route: string[] }) {
       return <GameScreen />;
     case 'partien':
       return b ? <Replay id={b} /> : <HistoryList />;
+    case 'online':
+      if (b === 'neu') return <OnlineNew />;
+      if (b === 'partie' && c) return <OnlineGameScreen id={c} />;
+      return <OnlineHome joinCode={b === 'beitreten' ? c : undefined} />;
     case 'einstellungen':
       return <SettingsScreen />;
     case 'raetsel':

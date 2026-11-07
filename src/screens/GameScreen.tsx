@@ -223,7 +223,7 @@ export function GameScreen() {
       turnColor: cgColor(turn),
       lastMove: lastMoveKeys(chess),
       check: chess.inCheck() ? cgColor(turn) : false,
-      viewOnly: over,
+
       movable: {
         free: false,
         color: !over && humanTurn && !paused ? cgColor(turn) : undefined,

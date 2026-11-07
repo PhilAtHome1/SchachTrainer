@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { countMyTurns } from './Online';
 import { Header } from '../components/ui';
 import { getCurrent } from '../lib/games';
 import { updateSettings, useSettings } from '../lib/settings';
@@ -12,6 +13,10 @@ const isStandalone =
 export function Home() {
   const current = getCurrent();
   const running = current && !current.result ? current : null;
+  const [myTurns, setMyTurns] = useState(0);
+  useEffect(() => {
+    countMyTurns().then(setMyTurns).catch(() => undefined);
+  }, []);
   return (
     <div className="screen home">
       <div className="hero">
@@ -37,6 +42,14 @@ export function Home() {
             <small>An einem Gerät – mit oder ohne Uhr</small>
           </span>
         </button>
+        <button className="menu-btn" onClick={() => navigate('#/online')}>
+          <span className="menu-icon">⇄</span>
+          <span>
+            <strong>Online mit Freunden</strong>
+            <small>Live oder Fernschach – per Einladungscode</small>
+          </span>
+          {myTurns > 0 && <span className="badge">{myTurns} am Zug</span>}
+        </button>
         <button className="menu-btn" onClick={() => navigate('#/raetsel')}>
           <span className="menu-icon">♟?</span>
           <span>
@@ -48,7 +61,7 @@ export function Home() {
           <span className="menu-icon">⚙</span>
           <span>
             <strong>Gegen Computer</strong>
-            <small>8 Spielstärken</small>
+            <small>8 Spielstärken, auch ab eigener Stellung</small>
           </span>
         </button>
         <div className="menu-row">
