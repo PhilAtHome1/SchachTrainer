@@ -41,8 +41,15 @@ export function createMockBackend(): Backend {
     const base = (turn(g) === 'w' ? g.clock_w : g.clock_b) ?? 0;
     return g.moves.length === 0 ? base : base - (Date.now() - new Date(g.last_move_at!).getTime());
   };
-  const finish = (g: OnlineGame, result: OnlineGame['result'], reason: string) =>
-    write({ ...g, status: 'finished', result, reason, draw_offer: null });
+  const GRACE = 500;
+  const finish = (g: OnlineGame, result: OnlineGame['result'], reason: string) => {
+    if (g.tc_initial != null && g.moves.length > 0 && g.status === 'active') {
+      const left = Math.max(0, remaining(g));
+      if (turn(g) === 'w') g.clock_w = left;
+      else g.clock_b = left;
+    }
+    return write({ ...g, status: 'finished', result, reason, draw_offer: null });
+  };
   const delay = <T>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 50));
 
   return {
@@ -101,8 +108,8 @@ export function createMockBackend(): Backend {
       if (g.moves.length !== ply) throw new Error('Spielstand veraltet – bitte neu laden');
       if (g.tc_initial != null && g.moves.length > 0) {
         let left = remaining(g);
-        if (left <= 0) return delay(finish(g, mover === 'w' ? '0-1' : '1-0', 'Zeitüberschreitung'));
-        left += (g.tc_inc ?? 0) * 1000;
+        if (left <= -GRACE) return delay(finish(g, mover === 'w' ? '0-1' : '1-0', 'Zeitüberschreitung'));
+        left = Math.max(0, left) + (g.tc_inc ?? 0) * 1000;
         if (mover === 'w') g.clock_w = left;
         else g.clock_b = left;
       }
@@ -139,7 +146,7 @@ export function createMockBackend(): Backend {
     },
     async claimTimeout(id) {
       const g = find(id);
-      if (g.status === 'active' && g.tc_initial != null && g.moves.length > 0 && remaining(g) <= 0)
+      if (g.status === 'active' && g.tc_initial != null && g.moves.length > 0 && remaining(g) <= -GRACE)
         return delay(finish(g, turn(g) === 'w' ? '0-1' : '1-0', 'Zeitüberschreitung'));
       return delay(g);
     },

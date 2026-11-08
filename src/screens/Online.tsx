@@ -355,7 +355,7 @@ export function OnlineGameScreen({ id }: { id: string }) {
   const [pending, setPending] = useState<Pending>(null);
   const [showEnd, setShowEnd] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const claimed = useRef('');
+  const claimedAt = useRef(0);
   const prevMoves = useRef<number | null>(null);
 
   // Neuere Stände übernehmen (Echtzeit-Updates können in beliebiger Reihenfolge kommen)
@@ -444,8 +444,10 @@ export function OnlineGameScreen({ id }: { id: string }) {
   useEffect(() => {
     if (!be || !game || !live || game.moves.length === 0) return;
     const r = remaining(turnOf(game));
-    if (r !== null && r <= 0 && claimed.current !== game.updated_at) {
-      claimed.current = game.updated_at;
+    // Der Server wartet 0,5 s Netzwerk-Toleranz ab – daher im Sekundentakt erneut melden
+    const t = Date.now();
+    if (r !== null && r <= 0 && t - claimedAt.current > 1000) {
+      claimedAt.current = t;
       be.claimTimeout(game.id).then(accept).catch(() => undefined);
     }
   });
@@ -591,6 +593,16 @@ export function OnlineGameScreen({ id }: { id: string }) {
       </div>
     );
   else if (active && me === turn) status = <div className="puzzle-msg good">Du bist am Zug</div>;
+  else if (finished) {
+    const won = (game.result === '1-0' && me === 'w') || (game.result === '0-1' && me === 'b');
+    const head = game.result === '1/2-1/2' ? 'Remis' : won ? 'Gewonnen' : me ? 'Verloren' : 'Beendet';
+    status = (
+      <div className={'puzzle-msg ' + (game.result === '1/2-1/2' ? '' : won ? 'solved' : 'wrong')}>
+        {head}
+        {game.reason ? ` – ${game.reason}` : ''}
+      </div>
+    );
+  }
 
   let dialog: React.ReactNode = null;
   if (pending?.kind === 'promotion') {

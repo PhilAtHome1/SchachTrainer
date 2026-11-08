@@ -129,3 +129,21 @@ describe('Supabase-Konfiguration', () => {
     expect(normalizeKey('  ')).toBeUndefined();
   });
 });
+
+describe('Uhr nach Zeitüberschreitung', () => {
+  it('zeigt beim Verlierer 0, auch wenn der Server die alte Restzeit gespeichert hat', () => {
+    const g = {
+      status: 'finished',
+      result: '1-0',
+      reason: 'Zeitüberschreitung',
+      tc_initial: 60,
+      clock_w: 900,
+      clock_b: 2400,
+      moves: ['e4'],
+      fen: 'x b - - 0 1',
+      last_move_at: new Date(0).toISOString(),
+    } as unknown as OnlineGame;
+    expect(remainingMs(g, 'b', 10_000)).toBe(0);
+    expect(remainingMs(g, 'w', 10_000)).toBe(900);
+  });
+});
