@@ -171,6 +171,12 @@ export function isMyTurn(g: OnlineGame, uid: string): boolean {
 /** Verbleibende Zeit (ms) einer Farbe zum Zeitpunkt `now` (Serverzeit). */
 export function remainingMs(g: OnlineGame, c: Color, now: number): number | null {
   if (g.tc_initial == null) return null;
+  // Wer auf Zeit verloren hat, hat 0 – auch bei Partien, die mit der alten
+  // Server-Version beendet wurden (dort blieb die Uhr auf dem Stand vor dem Zug stehen).
+  if (g.status === 'finished' && g.reason?.startsWith('Zeitüberschreitung')) {
+    const loser: Color = g.result === '1-0' ? 'b' : 'w';
+    if (c === loser) return 0;
+  }
   const base = (c === 'w' ? g.clock_w : g.clock_b) ?? 0;
   const running = g.status === 'active' && turnOf(g) === c && g.moves.length > 0 && g.last_move_at;
   return running ? base - (now - new Date(g.last_move_at!).getTime()) : base;

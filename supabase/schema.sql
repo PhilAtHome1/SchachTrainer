@@ -82,13 +82,31 @@ language sql stable as $$
   end
 $$;
 
+-- Netzwerk-Toleranz: Züge, die bis zu 0,5 s nach Ablauf der Zeit ankommen, zählen noch
+-- (Verzögerung im Mobilfunknetz). Erst danach gilt die Zeit als überschritten.
+create or replace function public._grace_ms() returns bigint
+language sql immutable as $$ select 500::bigint $$;
+
+-- Partie beenden; die laufende Uhr wird dabei auf die tatsächliche Restzeit gesetzt
+-- (bei Zeitüberschreitung also auf 0), damit die Anzeige danach stimmt.
 create or replace function public._finish(p_id uuid, p_result text, p_reason text) returns public.games
-language sql as $$
+language plpgsql as $$
+declare
+  g public.games;
+  left_ms bigint;
+begin
+  select * into g from public.games where id = p_id;
+  if g.tc_initial is not null and coalesce(array_length(g.moves, 1), 0) > 0 and g.status = 'active' then
+    left_ms := greatest(public._remaining(g), 0);
+    if public._turn(g) = 'w' then g.clock_w := left_ms; else g.clock_b := left_ms; end if;
+  end if;
   update public.games
-     set status = 'finished', result = p_result, reason = p_reason, draw_offer = null, updated_at = now()
+     set status = 'finished', result = p_result, reason = p_reason, draw_offer = null,
+         clock_w = g.clock_w, clock_b = g.clock_b, updated_at = now()
    where id = p_id
-  returning *
-$$;
+  returning * into g;
+  return g;
+end $$;
 
 -- ---------- Partie anlegen / beitreten ----------
 
@@ -175,10 +193,10 @@ begin
   -- Schachuhr (läuft ab dem ersten Zug von Weiß)
   if g.tc_initial is not null and n > 0 then
     left_ms := public._remaining(g);
-    if left_ms <= 0 then
+    if left_ms <= -public._grace_ms() then
       return public._finish(g.id, case when mover = 'w' then '0-1' else '1-0' end, 'Zeitüberschreitung');
     end if;
-    left_ms := left_ms + g.tc_inc * 1000;
+    left_ms := greatest(left_ms, 0) + g.tc_inc * 1000;
     if mover = 'w' then g.clock_w := left_ms; else g.clock_b := left_ms; end if;
   end if;
 
@@ -251,7 +269,7 @@ begin
   select * into g from public.games where id = p_id for update;
   if public._my_color(g) is null then raise exception 'Nicht möglich'; end if;
   if g.status = 'active' and g.tc_initial is not null and coalesce(array_length(g.moves, 1), 0) > 0
-     and public._remaining(g) <= 0 then
+     and public._remaining(g) <= -public._grace_ms() then
     return public._finish(g.id, case when public._turn(g) = 'w' then '0-1' else '1-0' end, 'Zeitüberschreitung');
   end if;
   return g;
