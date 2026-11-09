@@ -147,3 +147,17 @@ describe('Uhr nach Zeitüberschreitung', () => {
     expect(remainingMs(g, 'w', 10_000)).toBe(900);
   });
 });
+
+import { addJokerUse, jokersLeft, JOKER_MAX } from '../src/lib/joker';
+
+describe('Joker-Zähler', () => {
+  it('zählt pro Farbe und unterstützt unbegrenzt', () => {
+    expect(jokersLeft(undefined, 'w')).toBe(JOKER_MAX);
+    const used = addJokerUse(addJokerUse(undefined, 'w'), 'w');
+    expect(used).toEqual({ w: 2, b: 0 });
+    expect(jokersLeft(used, 'w')).toBe(1);
+    expect(jokersLeft(used, 'b')).toBe(3);
+    expect(jokersLeft({ w: 5 }, 'w')).toBe(0);
+    expect(jokersLeft(used, 'w', null)).toBeNull();
+  });
+});
