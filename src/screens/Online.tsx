@@ -404,6 +404,10 @@ export function OnlineGameScreen({ id }: { id: string }) {
     };
   }, [be, id, refresh, accept]);
 
+  const joker = useJoker(chess?.fen() ?? '', game?.moves.length ?? 0);
+  const jokerShapes = over ? [] : joker.shapes;
+  
+  
   const me: Color | null = game && uid ? myColor(game, uid) : null;
   const moves = useMemo(() => (game ? [...game.moves, ...(optimistic ? [optimistic.san] : [])] : []), [game, optimistic]);
   const chess = useMemo(() => {
@@ -522,10 +526,20 @@ export function OnlineGameScreen({ id }: { id: string }) {
         },
       },
       premovable: { enabled: false },
+      drawable: { autoShapes: jokerShapes },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chess, active, optimistic, me, turn, online]);
-
+  }, [chess, active, optimistic, me, turn, online, jokerShapes]);
+  
+  function takeJoker(c: Color) {
+    if (!game || over || turn !== c || jokerLeft(c) === 0 || paused) return;
+    void joker.request(() => {
+      // Verbrauch erst zählen, wenn ein Vorschlag da ist (aktuellen Stand lesen, nicht den der Closure)
+      const current = getCurrent();
+      if (current) persist({ ...current, jokers: addJokerUse(current.jokers, c) });
+    });
+  }
+  
   if (!onlineConfigured) {
     return (
       <div className="screen">
