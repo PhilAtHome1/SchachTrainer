@@ -17,6 +17,9 @@ import {
   type PromotionPiece,
 } from '../lib/chess';
 import { addToHistory, type GameRecord } from '../lib/games';
+import { bestMove } from '../lib/engine';
+import { addJokerUse, jokersLeft, useJoker } from '../lib/joker';
+import { JokerBanner, JokerButton } from '../components/Joker';
 import {
   errorText,
   getBackend,
