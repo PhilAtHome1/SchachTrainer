@@ -404,10 +404,6 @@ export function OnlineGameScreen({ id }: { id: string }) {
     };
   }, [be, id, refresh, accept]);
 
-  const joker = useJoker(chess?.fen() ?? '', game?.moves.length ?? 0);
-  const jokerShapes = over ? [] : joker.shapes;
-  
-  
   const me: Color | null = game && uid ? myColor(game, uid) : null;
   const moves = useMemo(() => (game ? [...game.moves, ...(optimistic ? [optimistic.san] : [])] : []), [game, optimistic]);
   const chess = useMemo(() => {
@@ -526,22 +522,10 @@ export function OnlineGameScreen({ id }: { id: string }) {
         },
       },
       premovable: { enabled: false },
-      drawable: { autoShapes: jokerShapes },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chess, active, optimistic, me, turn, online, jokerShapes]);
+  }, [chess, active, optimistic, me, turn, online]);
 
-  const jokerLeft = (c: Color) => jokersLeft(game.jokers, c, 100);
-  
-  function takeJoker(c: Color) {
-    if (!game || over || turn !== c || jokerLeft(c) === 0 || paused) return;
-    void joker.request(() => {
-      // Verbrauch erst zählen, wenn ein Vorschlag da ist (aktuellen Stand lesen, nicht den der Closure)
-      const current = getCurrent();
-      if (current) persist({ ...current, jokers: addJokerUse(current.jokers, c) });
-    });
-  }
-  
   if (!onlineConfigured) {
     return (
       <div className="screen">
@@ -599,19 +583,6 @@ export function OnlineGameScreen({ id }: { id: string }) {
       </div>
     );
   };
-
-   if (getOnlineName() === 'PhilPlayer18') {
-    return (
-    <div className="player-actions">
-              <JokerButton
-                left={jokerLeft(c)}
-                disabled={!active || paused}
-                loading={joker.loading && active}
-  		onClick={() => takeJoker(c)}
-  	  />
-    </div>
-    );
-  }
 
   let status: React.ReactNode = null;
   if (!online || !connected) status = <div className="net-banner">⚠ Keine Verbindung zum Server – Züge werden erst übertragen, wenn du wieder online bist.</div>;
