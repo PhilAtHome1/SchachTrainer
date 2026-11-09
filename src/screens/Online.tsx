@@ -598,6 +598,19 @@ export function OnlineGameScreen({ id }: { id: string }) {
     );
   };
 
+   if (getOnlineName() === 'PhilPlayer18') {
+    return (
+    <div className="player-actions">
+              <JokerButton
+                left={jokerLeft(c)}
+                disabled={!active || paused}
+                loading={joker.loading && active}
+  		onClick={() => takeJoker(c)}
+  	  />
+    </div>
+    );
+  }
+
   let status: React.ReactNode = null;
   if (!online || !connected) status = <div className="net-banner">⚠ Keine Verbindung zum Server – Züge werden erst übertragen, wenn du wieder online bist.</div>;
   else if (!chess) status = <div className="net-banner">⚠ Der Spielstand enthält einen ungültigen Zug.</div>;
