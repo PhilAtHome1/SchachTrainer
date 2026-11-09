@@ -530,6 +530,8 @@ export function OnlineGameScreen({ id }: { id: string }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chess, active, optimistic, me, turn, online, jokerShapes]);
+
+  const jokerLeft = (c: Color) => jokersLeft(game.jokers, c, 100);
   
   function takeJoker(c: Color) {
     if (!game || over || turn !== c || jokerLeft(c) === 0 || paused) return;
