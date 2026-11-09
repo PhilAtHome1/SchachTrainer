@@ -29,8 +29,7 @@ export interface GameRecord {
   jokers?: Record<Color, number>;
 }
 
-/** So oft darf jeder Spieler pro Partie den Joker (bester Zug von Stockfish) nutzen. */
-export const JOKER_MAX = 3;
+export { JOKER_MAX } from './joker';
 
 const CURRENT = 'current-game';
 const HISTORY = 'history';
